@@ -19,11 +19,8 @@ int main(int argc, char **argv){
     //client_opration = init_new_client(client_opration);
     
 
-
     while(1){
-        if(client_opration.operation_type == 1){
-            
-        }
+        if()
         else if(client_opration.operation_type == )
         
     }

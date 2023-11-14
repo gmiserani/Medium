@@ -18,3 +18,12 @@ struct BlogOperation {
     char topic[50];
     char content[2048];
 };
+
+struct client{
+    int client_id;
+    topic subscribed_topics[];
+}
+
+struct topic{
+
+}
