@@ -22,38 +22,37 @@ struct BlogOperation {
 
 struct client{
     int client_id;
-    struct topic subscribed_topics[10000];
-    int subscribed_topics_count = 0;
     int socket;
-    p_thread thread;
+    pthread_t thread;
 };
 
 struct post{
     char topic[50];
     char content[2048];
     int author_id;
-}
+};
 
 struct topic{
+    int topic_id; //posicao dele na lista de topicos do blog
     char topic[50];
     int clients[10];
     struct post posts[1000];
     int owner;
-    int posts_count = 0;
-    int client_count = 0;
+    int posts_count;
+    int client_count;
 };
 
 struct server{
     int server_id;
     int clients[10];
-    int clients_count = 0;
-    int topics_count = 0;
+    int clients_count;
+    int topics_count;
     struct topic topics[10000];
 };
 
 struct Blog{
     struct topic list_topics[10000];
-    int list_topics_count = 0;
-    int list_clients_count = 0;
+    int list_topics_count;
+    int list_clients_count;
     struct client list_clients[10];
-}
+};
