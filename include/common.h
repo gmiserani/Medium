@@ -36,7 +36,7 @@ struct topic{
     int topic_id; //posicao dele na lista de topicos do blog
     char topic[50];
     int clients[10];
-    struct post posts[1000];
+    struct post posts[10];
     int owner;
     int posts_count;
     int client_count;
@@ -47,11 +47,11 @@ struct server{
     int clients[10];
     int clients_count;
     int topics_count;
-    struct topic topics[10000];
+    struct topic topics[10];
 };
 
 struct Blog{
-    struct topic list_topics[10000];
+    struct topic list_topics[10];
     int list_topics_count;
     int list_clients_count;
     struct client list_clients[10];

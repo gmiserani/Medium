@@ -29,6 +29,7 @@ int defining_id(){
             return client_id;
         }
     }
+    return -1;
 }
 
 int verify_topic_existence(struct BlogOperation operation){
@@ -96,7 +97,7 @@ void unsubscribe_topic(struct BlogOperation operation){
 
 void notify_participants(struct BlogOperation operation_client){
     for(int i =0; i<blog.list_topics_count; i++){
-        if(strcmp(blog.list_topics[i].topic, operation_client.topic)){
+        if(strcmp(blog.list_topics[i].topic, operation_client.topic) == 0){
             for(int j = 0; j < 10; j++){
                 if(blog.list_topics[i].clients[j] == 1){
                     struct BlogOperation operation;
@@ -162,10 +163,12 @@ void* clientFunction(void* clientThread){
                 if(!verify_topic_existence(req)){
                     create_topic(req);
                     notify_participants(req);
+                    printf("new post added in %s by %02d\n", req.topic, req.client_id);
                 }
                 else{
                     //enviar pro outro cliente
                     notify_participants(req);
+                    printf("new post added in %s by %02d\n", req.topic, req.client_id);
                 }
             }
 
@@ -177,9 +180,10 @@ void* clientFunction(void* clientThread){
                     strcpy(topics, "no topics available");
                 }else{
                     for(int i = 0; i < blog.list_topics_count; i++){
-                        printf("%s\n", blog.list_topics[i].topic);
                         strcat(topics, blog.list_topics[i].topic);
-                        strcat(topics, "; ");
+                        if(i != blog.list_topics_count - 1){
+                            strcat(topics, "; ");
+                        }
                     }
                 }
                 strcpy(res.content, topics);
@@ -188,11 +192,11 @@ void* clientFunction(void* clientThread){
                 if(verify_topic_existence(req)){
                     if(!already_subscribed(req)){
                         subscribe_topic(req);
+                        printf("client %02d subscribed to %s\n", req.client_id, req.topic);
                     }
                     else{
-                        struct BlogOperation res;
                         res.client_id = 2;
-                        res.operation_type = 0;
+                        res.operation_type = -1;
                         res.server_response = 0;
                         strcpy(res.topic, "");
                         strcpy(res.content, "error: already subscribed");
@@ -201,20 +205,20 @@ void* clientFunction(void* clientThread){
                 else{
                     create_topic(req);
                     subscribe_topic(req);
+                    printf("client %02d subscribed to %s\n", req.client_id, req.topic);
                 }
             }
             else if(req.operation_type == 5){
                 userExit(req);
-                printf("client %02d was disconnected\n", req.client_id);
+                printf("client %02d disconnected\n", req.client_id);
             }
             else if(req.operation_type == 6){
                 if(already_subscribed(req)){
                     unsubscribe_topic(req);
                 }
                 else{
-                    struct BlogOperation res;
                     res.client_id = 2;
-                    res.operation_type = 0;
+                    res.operation_type = -1;
                     res.server_response = 1;
                     strcpy(res.topic, "");
                     strcpy(res.content, "error: not subscribed");
@@ -222,9 +226,7 @@ void* clientFunction(void* clientThread){
                 
 
             }
-        }
-        else printf("error: client not connected");
-    
+        }    
         // send resp to client
         if(res.server_response != -1){
             size_t count_bytes_sent = send(sockfd, &res, sizeof(struct BlogOperation), 0);

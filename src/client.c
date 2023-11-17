@@ -27,7 +27,7 @@ void* waitForResponse(void* sock){
         else if(resp.operation_type == 5){
             printf("exit\n");
         }
-        else if(resp.operation_type == 0){
+        else if(resp.operation_type == -1){
             printf("%s\n", resp.content);
         }
         if(resp.operation_type == 5){
@@ -59,10 +59,7 @@ int main(int argc, char **argv){
 
     struct BlogOperation res;
     receive_all(sockfd, &res, sizeof(res)); // receive server response
-    if(res.server_response == 1){
-        printf("Client %02d connected to server\n", res.client_id);
-    }
-    else{
+    if(res.server_response != 1){
         printf("Client %02d could not connect to server\n", res.client_id);
         exit(EXIT_FAILURE);
     }
@@ -76,10 +73,8 @@ int main(int argc, char **argv){
         strcpy(temp, posted);
         char * cmd = strtok(temp, " ");
         char *content = " ";
-        printf("aqui %s\n", temp);
 
         if(strcmp(posted, "exit") == 0){
-            printf("exit\n");
             res.operation_type = 5;
             count = send(sockfd, &res, sizeof(res), 0); // send res to server
             if(count != sizeof(res)) logexit("send");
@@ -88,12 +83,7 @@ int main(int argc, char **argv){
         else if(strcmp(cmd, "subscribe") == 0){
             strcpy(temp, cmd);
             content = temp + 10;
-            // char *mid_word = strtok(NULL, " ");
-            // if(mid_word == NULL || !(strcmp(mid_word, "in") == 0 || strcmp(mid_word, "to") == 0)){
-            //     printf("error reading");
-            // }
             strcpy(res.topic, content);
-            printf("topic: %s\n", res.topic);
             res.operation_type = 4;
             count = send(sockfd, &res, sizeof(res), 0); // send res to server
             if(count != sizeof(res)) logexit("send");
@@ -119,7 +109,6 @@ int main(int argc, char **argv){
             if(count != sizeof(res)) logexit("send");
         }
         else if(strcmp(posted, "list topics") == 0){
-            printf("list topics\n");
             res.operation_type = 3;
             count = send(sockfd, &res, sizeof(res), 0); // send res to server
             if(count != sizeof(res)) logexit("send");
