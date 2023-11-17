@@ -1,32 +1,30 @@
 #include "common.h"
 
-int id[10];
+
 struct Blog blog;
 void init_all(){
     for(int i =0; i< 10; i++){
-    id[i] = 0;
+        blog.id[i] = 0;
     }
     blog.list_clients_count = 0;
     blog.list_topics_count = 0;
 }
 
 void userExit(struct BlogOperation operation){
-    struct client client;
-    client = blog.list_clients[operation.client_id];
     for(int i = 0; i < blog.list_topics_count; i++){
         if(blog.list_topics[i].clients[operation.client_id] == 1){
             blog.list_topics[i].clients[operation.client_id] = 0;
             blog.list_topics[i].client_count--;
         }
     }
-    id[operation.client_id] = 0;
+    blog.id[operation.client_id] = 0;
     blog.list_clients_count--;
 }
 
 int defining_id(){
     for(int i=0; i < 10; i++){
-        if(id[i] == 0){
-            id[i] = 1;
+        if(blog.id[i] == 0){
+            blog.id[i] = 1;
             int client_id = i+1;
             return client_id;
         }
@@ -96,7 +94,7 @@ void unsubscribe_topic(struct BlogOperation operation){
     }
 }
 
-struct BlogOperation notify_participants(struct BlogOperation operation_client){
+void notify_participants(struct BlogOperation operation_client){
     for(int i =0; i<blog.list_topics_count; i++){
         if(strcmp(blog.list_topics[i].topic, operation_client.topic)){
             for(int j = 0; j < 10; j++){
@@ -157,31 +155,19 @@ void* clientFunction(void* clientThread){
         res.server_response = 0;
         strcpy(res.topic, "");
         strcpy(res.content, "");
-        
-
-
-
 
 
         if(req.client_id != 0){
-            //REFAZER ESSEEEEEE
             if(req.operation_type == 2){
                 if(!verify_topic_existence(req)){
                     create_topic(req);
-                    res = notify_participants(req);
+                    notify_participants(req);
                 }
                 else{
                     //enviar pro outro cliente
-                    res = notify_participants(req);
+                    notify_participants(req);
                 }
             }
-
-
-
-
-
-
-
 
             else if(req.operation_type == 3){
                 char * topics = malloc(sizeof(char) * 2048);
@@ -191,6 +177,7 @@ void* clientFunction(void* clientThread){
                     strcpy(topics, "no topics available");
                 }else{
                     for(int i = 0; i < blog.list_topics_count; i++){
+                        printf("%s\n", blog.list_topics[i].topic);
                         strcat(topics, blog.list_topics[i].topic);
                         strcat(topics, "; ");
                     }

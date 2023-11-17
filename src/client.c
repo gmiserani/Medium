@@ -42,7 +42,7 @@ int main(int argc, char **argv){
     char* ip = argv[1];
     char* port = argv[2];
     struct sockaddr_storage storage;
-    if(server_sockaddr_init(ip, port, &storage) != 0) logexit("clientSockaddrInit");
+    if(addrparse(ip, port, &storage) != 0) logexit("addrparse");
     // inicialize socket
     int sockfd = socket(storage.ss_family, SOCK_STREAM, 0);
     if(sockfd == -1) logexit("socket");
@@ -74,51 +74,55 @@ int main(int argc, char **argv){
         posted[strlen(posted) - 1] = '\0';
         char *temp = malloc(sizeof(char) * 2048);
         strcpy(temp, posted);
+        char * cmd = strtok(temp, " ");
         char *content = " ";
+        printf("aqui %s\n", temp);
 
         if(strcmp(posted, "exit") == 0){
             printf("exit\n");
-            client_operation.operation_type = 5;
-            count = send(sockfd, &client_operation, sizeof(client_operation), 0); // send client_operation to server
-            if(count != sizeof(client_operation)) logexit("send");
+            res.operation_type = 5;
+            count = send(sockfd, &res, sizeof(res), 0); // send res to server
+            if(count != sizeof(res)) logexit("send");
             break;
         }
-        else if(strcmp(posted, "subscribe") == 0){
-            strcpy(temp, posted);
-            content = temp + 13;
-            char *mid_word = strtok(NULL, " ");
-            if(mid_word == NULL || !(strcmp(mid_word, "in") == 0 || strcmp(mid_word, "to") == 0)){
-                printf("error reading");
-            }
-            strcpy(client_operation.topic, content);
-            client_operation.operation_type = 4;
-            count = send(sockfd, &client_operation, sizeof(client_operation), 0); // send client_operation to server
-            if(count != sizeof(client_operation)) logexit("send");
+        else if(strcmp(cmd, "subscribe") == 0){
+            strcpy(temp, cmd);
+            content = temp + 10;
+            // char *mid_word = strtok(NULL, " ");
+            // if(mid_word == NULL || !(strcmp(mid_word, "in") == 0 || strcmp(mid_word, "to") == 0)){
+            //     printf("error reading");
+            // }
+            strcpy(res.topic, content);
+            printf("topic: %s\n", res.topic);
+            res.operation_type = 4;
+            count = send(sockfd, &res, sizeof(res), 0); // send res to server
+            if(count != sizeof(res)) logexit("send");
         }
-        else if(strcmp(posted, "unsubscribe") == 0){
-            strcpy(temp, posted);
+        else if(strcmp(cmd, "unsubscribe") == 0){
+            strcpy(temp, cmd);
             content = temp + 15;
-            strcpy(client_operation.topic, content);
-            client_operation.operation_type = 6;
-            count = send(sockfd, &client_operation, sizeof(client_operation), 0); // send client_operation to server
-            if(count != sizeof(client_operation)) logexit("send");
+            strcpy(res.topic, content);
+            res.operation_type = 6;
+            count = send(sockfd, &res, sizeof(res), 0); // send res to server
+            if(count != sizeof(res)) logexit("send");
         }
-        else if(strcmp(posted, "publish") == 0){
-            strcpy(temp, posted);
+        else if(strcmp(cmd, "publish") == 0){
+            strcpy(temp, cmd);
             content = temp + 11;
             fgets(posted, 2048, stdin);
             char publish[2048];
             strcpy(publish, posted);
-            strcpy(client_operation.content, publish);
-            strcpy(client_operation.topic, content);
-            client_operation.operation_type = 2;            
-            count = send(sockfd, &client_operation, sizeof(client_operation), 0); // send client_operation to server
-            if(count != sizeof(client_operation)) logexit("send");
+            strcpy(res.content, publish);
+            strcpy(res.topic, content);
+            res.operation_type = 2;            
+            count = send(sockfd, &res, sizeof(res), 0); // send res to server
+            if(count != sizeof(res)) logexit("send");
         }
         else if(strcmp(posted, "list topics") == 0){
-            client_operation.operation_type = 3;
-            count = send(sockfd, &client_operation, sizeof(client_operation), 0); // send client_operation to server
-            if(count != sizeof(client_operation)) logexit("send");
+            printf("list topics\n");
+            res.operation_type = 3;
+            count = send(sockfd, &res, sizeof(res), 0); // send res to server
+            if(count != sizeof(res)) logexit("send");
         }
         else{
             printf("Invalid command\n");

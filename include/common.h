@@ -55,6 +55,7 @@ struct Blog{
     int list_topics_count;
     int list_clients_count;
     struct client list_clients[10];
+    int id[10];
 };
 
 int addrparse(const char * addrstr, const char * portstr, struct sockaddr_storage * storage);
