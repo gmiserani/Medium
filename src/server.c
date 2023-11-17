@@ -10,122 +10,7 @@ void init_all(){
     blog.list_topics_count = 0;
 }
 
-
-
-void* clientFunction(void* clientThread)
-{
-    struct Client *clientThreadPtr = (struct Client*) clientThread;
-    int sockfd = clientThreadPtr->sock;
-    struct BlogOperation req;
-    while(true){
-        int count = receive_all(sockfd, &req, sizeof(struct BlogOperation));
-        if(count == 0){
-            req.operation_type = 5;
-        }
-        // handle client req
-        struct BlogOperation res;
-        res.client_id = req.client_id;
-        res.operation_type = 0;
-        res.server_response = 0;
-        strcpy(res.topic, "");
-        strcpy(res.content, "");
-        
-
-
-
-
-
-        if(req.client_id != 0){
-            //REFAZER ESSEEEEEE
-            if(req.operation_type == 2){
-                if(!verify_topic_existence){
-                    reate_topic(req);
-                    res = notify_participants(req);
-                }
-                else{
-                    //enviar pro outro cliente
-                    res2 = notify_participants(req);
-                }
-            }
-
-
-
-
-
-
-
-
-            else if(req.operation_type == 3){
-                char * topics = malloc(sizeof(char) * 2048);
-                res.operation_type = 3;
-                res.server_response = 1;
-                if(blog.list_topics_count == 0){
-                    strcpy(topics, "no topics available");
-                }else{
-                    for(int i = 0; i < blog.list_topics_count; i++){
-                        strcat(topics, blog.list_topics[i].topic);
-                        strcat(topics, "\n");
-                    }
-                }
-                strcpy(res.content, topics);
-            }
-            else if(req.operation_type == 4){
-                if(verify_topic_existence(req)){
-                    if(!already_subscribed(req)){
-                        subscribe_topic(req);
-                    }
-                    else{
-                        struct BlogOperation res;
-                        res.client_id = 2;
-                        res.operation_type = 4;
-                        res.server_response = 0;
-                        strcpy(res.topic, "");
-                        strcpy(res.content, "error: already subscribed");
-                    }
-                }
-                else{
-                    create_topic(req);
-                    subscribe_topic(req);
-                }
-            }
-            else if(req.operation_type == 5){
-                userExit(req);
-                printf("client 0%d was disconnected\n", req.client_id);
-            }
-            else if(req.operation_type == 6){
-                if(already_subscribed(req)){
-                    unsubscribe_topic(req);
-                }
-                else{
-                    struct BlogOperation res;
-                    res.client_id = 2;
-                    res.operation_type = 6;
-                    res.server_response = 1;
-                    strcpy(res.topic, "");
-                    strcpy(res.content, "error: not subscribed");
-                }   
-                
-
-            }
-        }
-        else printf("error: client not connected");
-    
-        // send resp to client
-        if(res.server_response != -1){
-            size_t count_bytes_sent = send(sockfd, &res, sizeof(struct BlogOperation), 0);
-            if(count_bytes_sent != sizeof(struct BlogOperation)) logexit("send");
-        }
-        // if client wants to exit, close connection
-        if(req.operation_type == 5){
-            close(sockfd);
-            break;
-        }
-    }
-    pthread_exit(EXIT_SUCCESS);
-}
-
 void userExit(struct BlogOperation operation){
-    sem_wait(&semaphore);
     struct client client;
     client = blog.list_clients[operation.client_id];
     for(int i = 0; i < blog.list_topics_count; i++){
@@ -136,9 +21,7 @@ void userExit(struct BlogOperation operation){
     }
     id[operation.client_id] = 0;
     blog.list_clients_count--;
-    sem_post(&semaphore);
 }
-
 
 int defining_id(){
     for(int i=0; i < 10; i++){
@@ -153,7 +36,6 @@ int defining_id(){
 int verify_topic_existence(struct BlogOperation operation){
     struct topic subscribed_topic;
     strcpy(subscribed_topic.topic, operation.topic);
-    int i = 0; 
     for(int i=0; i<blog.list_topics_count;i++){
         if(strcmp(blog.list_topics[i].topic, subscribed_topic.topic) == 0){
             return 1;
@@ -186,7 +68,6 @@ void create_topic(struct BlogOperation operation){
 void subscribe_topic(struct BlogOperation operation){
     struct topic subscribed_topic;
     strcpy(subscribed_topic.topic, operation.topic);
-    int i = 0;
     for(int i =0; i < blog.list_topics_count; i++){
         if(strcmp(blog.list_topics[i].topic, subscribed_topic.topic) == 0){
             subscribed_topic = blog.list_topics[i];
@@ -204,7 +85,6 @@ void subscribe_topic(struct BlogOperation operation){
 void unsubscribe_topic(struct BlogOperation operation){
     struct topic subscribed_topic;
     strcpy(subscribed_topic.topic, operation.topic);
-    int i = 0;
     for(int i =0; i < blog.list_topics_count; i++){
         if(strcmp(blog.list_topics[i].topic, subscribed_topic.topic) == 0){
             subscribed_topic = blog.list_topics[i];
@@ -217,19 +97,28 @@ void unsubscribe_topic(struct BlogOperation operation){
 }
 
 struct BlogOperation notify_participants(struct BlogOperation operation_client){
-    struct BlogOperation operation;
-    operation.client_id = operation_client.client_id;
-    operation.operation_type = 2;
-    operation.server_response = 1;
-    strcpy(operation.topic, operation_client.topic);
-    strcpy(operation.content, operation_client.content);
-    return operation;
+    for(int i =0; i<blog.list_topics_count; i++){
+        if(strcmp(blog.list_topics[i].topic, operation_client.topic)){
+            for(int j = 0; j < 10; j++){
+                if(blog.list_topics[i].clients[j] == 1){
+                    struct BlogOperation operation;
+                    operation.client_id = operation_client.client_id;
+                    operation.operation_type = 2;
+                    operation.server_response = 1;
+                    strcpy(operation.topic, operation_client.topic);
+                    strcpy(operation.content, operation_client.content);
+                    size_t count_bytes_sent = send(blog.list_clients[j].socket, &operation, sizeof(struct BlogOperation), 0);
+                    if(count_bytes_sent != sizeof(struct BlogOperation)) logexit("send");
+                }
+            }
+        }
+    
+    }
 }
 
 int already_subscribed(struct BlogOperation operation_client){
     struct topic subscribed_topic;
     strcpy(subscribed_topic.topic, operation_client.topic);
-    int i = 0; 
     for(int i =0; i < blog.list_topics_count; i++){
         //pega o topico da lista de topicos do blog
         if(strcmp(blog.list_topics[i].topic, subscribed_topic.topic) == 0){
@@ -243,21 +132,129 @@ int already_subscribed(struct BlogOperation operation_client){
 }
 
 struct client createClient(int sock){
-    sem_wait(&semaphore);
     struct client connected_client;
     int connected_client_id = defining_id();
     connected_client.client_id = connected_client_id;
     connected_client.socket = sock;
     blog.list_clients[connected_client_id] = connected_client;
     blog.list_clients_count++;
-    sem_post(&semaphore);
     return connected_client;
+}
+
+void* clientFunction(void* clientThread){
+    struct client *clientThreadPtr = (struct client*) clientThread;
+    int sockfd = clientThreadPtr->socket;
+    struct BlogOperation req;
+    while(true){
+        int count = receive_all(sockfd, &req, sizeof(struct BlogOperation));
+        if(count == 0){
+            req.operation_type = 5;
+        }
+        // handle client req
+        struct BlogOperation res;
+        res.client_id = req.client_id;
+        res.operation_type = 0;
+        res.server_response = 0;
+        strcpy(res.topic, "");
+        strcpy(res.content, "");
+        
+
+
+
+
+
+        if(req.client_id != 0){
+            //REFAZER ESSEEEEEE
+            if(req.operation_type == 2){
+                if(!verify_topic_existence(req)){
+                    create_topic(req);
+                    res = notify_participants(req);
+                }
+                else{
+                    //enviar pro outro cliente
+                    res = notify_participants(req);
+                }
+            }
+
+
+
+
+
+
+
+
+            else if(req.operation_type == 3){
+                char * topics = malloc(sizeof(char) * 2048);
+                res.operation_type = 3;
+                res.server_response = 1;
+                if(blog.list_topics_count == 0){
+                    strcpy(topics, "no topics available");
+                }else{
+                    for(int i = 0; i < blog.list_topics_count; i++){
+                        strcat(topics, blog.list_topics[i].topic);
+                        strcat(topics, "; ");
+                    }
+                }
+                strcpy(res.content, topics);
+            }
+            else if(req.operation_type == 4){
+                if(verify_topic_existence(req)){
+                    if(!already_subscribed(req)){
+                        subscribe_topic(req);
+                    }
+                    else{
+                        struct BlogOperation res;
+                        res.client_id = 2;
+                        res.operation_type = 0;
+                        res.server_response = 0;
+                        strcpy(res.topic, "");
+                        strcpy(res.content, "error: already subscribed");
+                    }
+                }
+                else{
+                    create_topic(req);
+                    subscribe_topic(req);
+                }
+            }
+            else if(req.operation_type == 5){
+                userExit(req);
+                printf("client %02d was disconnected\n", req.client_id);
+            }
+            else if(req.operation_type == 6){
+                if(already_subscribed(req)){
+                    unsubscribe_topic(req);
+                }
+                else{
+                    struct BlogOperation res;
+                    res.client_id = 2;
+                    res.operation_type = 0;
+                    res.server_response = 1;
+                    strcpy(res.topic, "");
+                    strcpy(res.content, "error: not subscribed");
+                }   
+                
+
+            }
+        }
+        else printf("error: client not connected");
+    
+        // send resp to client
+        if(res.server_response != -1){
+            size_t count_bytes_sent = send(sockfd, &res, sizeof(struct BlogOperation), 0);
+            if(count_bytes_sent != sizeof(struct BlogOperation)) logexit("send");
+        }
+        // if client wants to exit, close connection
+        if(req.operation_type == 5){
+            close(sockfd);
+            break;
+        }
+    }
+    pthread_exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[]){
     char * ip = argv[1];
     char * port = argv[2];
-    sem_init(&semaphore, 0, 1); // initialize semaphore
     init_all(); 
     struct sockaddr_storage storage;
     if(server_sockaddr_init(ip, port, &storage)) logexit("serverSockaddrInitt");
@@ -284,7 +281,7 @@ int main(int argc, char *argv[]){
         // add new user to the blog
         struct client newClient = createClient(csock);
 
-        printf("client 0%d connected\n", newClient.client_id);
+        printf("client %02d connected\n", newClient.client_id);
         // send new connection response to client
 
         struct BlogOperation resp;

@@ -56,3 +56,8 @@ struct Blog{
     int list_clients_count;
     struct client list_clients[10];
 };
+
+int addrparse(const char * addrstr, const char * portstr, struct sockaddr_storage * storage);
+int server_sockaddr_init(const char * protocol_version, const char * portstr, struct sockaddr_storage * storage);
+void logexit(const char * msg);
+size_t receive_all(int socket, void * buffer, size_t length);
