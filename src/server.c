@@ -17,7 +17,7 @@ void userExit(struct BlogOperation operation){
             blog.list_topics[i].client_count--;
         }
     }
-    blog.id[operation.client_id] = 0;
+    blog.id[operation.client_id-1] = 0;
     blog.list_clients_count--;
 }
 
